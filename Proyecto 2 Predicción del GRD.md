@@ -53,6 +53,6 @@ La entrega consiste de:
 
 
 ## Formatos y Documentos Adjuntos
-1. [[MSI608 Proyecto 2 2026.docx|Este mismo documento en Word]]
-2. [[MSI608-Presentacion.pptx|Formato de Presentación]]
-3. [[analisis_base.ipynb|Proyecto en Python]]
+1. [Este mismo documento](MSI608-Proyecto2-2026.docx)
+2. [Formato Presentación](MSI608-Presentacion.pptx)
+3. [Proyecto en Python](analisis_base.ipynb)
