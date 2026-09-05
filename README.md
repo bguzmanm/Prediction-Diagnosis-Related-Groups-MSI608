@@ -2,6 +2,6 @@
 
 Este repositorio pretende servir como repo central para el trabajo en equipo que realizaremos para la entrega del informe número 2 del ramo.
 
-1. [[Proyecto 2 Predicción del GRD|Descripción del Informe 2]]
-2. [[MSI608-Presentacion.pptx|Formato de Presentación]]
-3. [[analisis_base.ipynb|Proyecto en Python]]
+1. [Descripción del Informe 2](Proyecto2-Predicción-del-GRD)
+2. [Formato de Presentación](MSI608-Presentacion.pptx)
+3. [Proyecto en Python](dataset/analisis_base.ipynb)
