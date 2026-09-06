@@ -6,6 +6,7 @@ Este repositorio pretende servir como repo central para el trabajo en equipo que
 2. [Formato de Presentación](MSI608-Presentacion.pptx)
 3. [Informe en Markdown](informe2-paper.md)
 4. [Proyecto en Python](dataset/analisis_multiclase.ipynb)
+5. [Paper en Overleaf](https://es.overleaf.com/read/ykwcyxjvqfdz#1e5217)
 
 ## Explicación de Contenido
 GRD (Grupos Relacionados por Diagnóstico) = sistema que clasifica cada hospitalización en uno de ~1095 grupos. Es la versión chilena de APR-DRG de 3M, que usa FONASA para pagar a los hospitales: cada egreso entra a un grupo clínica y econónomicamente similar, y el hospital cobra el "Precio FONASA" asociado. El GRD es prácticamente el resumen de toda la hospitalización.
