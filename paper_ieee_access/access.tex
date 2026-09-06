@@ -1,0 +1,455 @@
+%=============================================================
+% Predicción del GRD (Grupo Relacionado al Diagnóstico) — IEEE Access
+% English version of informe2-paper.md — 6 pages, two columns.
+%
+% ==== PLACEHOLDERS TO FILL BEFORE SUBMISSION ====
+% 1) \history -> actual dates (received / accepted / published)
+% 2) \doi -> article DOI assigned by IEEE
+% 3) \title -> fine as is
+% 4) \author -> real names, \IEEEmembership, \address (institution + emails)
+% 5) \tfootnote -> funding/acknowledgment (course MSI608 UNAB)
+% 6) \markboth -> running head
+% 7) \corresp -> corresponding author email
+% 8) GitHub / Overleaf links in Section 1 -> replace "..."
+%=============================================================
+\documentclass{ieeeaccess}
+%Adjusted 05/13/2026 at the byline author names
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+
+\usepackage{bm}
+\emergencystretch=1em
+\makeatletter
+\AtBeginDocument{\DeclareMathVersion{bold}
+\SetSymbolFont{operators}{bold}{T1}{times}{b}{n}
+\SetSymbolFont{NewLetters}{bold}{T1}{times}{b}{it}
+\SetMathAlphabet{\mathrm}{bold}{T1}{times}{b}{n}
+\SetMathAlphabet{\mathit}{bold}{T1}{times}{b}{it}
+\SetMathAlphabet{\mathbf}{bold}{T1}{times}{b}{n}
+\SetMathAlphabet{\mathtt}{bold}{OT1}{pcr}{b}{n}
+\SetSymbolFont{symbols}{bold}{OMS}{cmsy}{b}{n}
+\renewcommand\boldmath{\@nomath\boldmath\mathversion{bold}}}
+\makeatother
+
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+%Your document starts from here ___________________________________________________
+\begin{document}
+\history{Received xx Month 2026, accepted xx Month 2026, date of publication xx Month 2026, date of current version xx Month 2026.}
+\doi{10.1109/ACCESS.2026.0429000}
+
+\title{Predicting the Diagnosis-Related Group From ICD-10 and ICD-9-CM Codes Using Machine Learning}
+\author{\uppercase{First A. Author}\authorrefmark{1}, \IEEEmembership{Student Member, IEEE},
+\uppercase{Second B. Author}\authorrefmark{2}, AND \uppercase{Third C. Author}\authorrefmark{3},
+\IEEEmembership{Student Member, IEEE}}
+
+\address[1]{School of Informatics, Universidad Andrés Bello, Santiago, Chile (e-mail: author1@unab.cl)}
+\address[2]{School of Informatics, Universidad Andrés Bello, Santiago, Chile (e-mail: author2@unab.cl)}
+\address[3]{School of Informatics, Universidad Andrés Bello, Santiago, Chile (e-mail: author3@unab.cl)}
+\tfootnote{This work was carried out as part of the course MSI608---T\'opicos de Especialidad en Ciencia de Datos, Universidad Andr\'es Bello, Santiago, Chile.}
+
+\markboth
+{First A. Author et al.: Predicting the Diagnosis-Related Group (DRG) Using Machine Learning}
+{First A. Author et al.: Predicting the Diagnosis-Related Group (DRG) Using Machine Learning}
+
+\corresp{Corresponding author: First A. Author (e-mail: author1@unab.cl).}
+
+
+\begin{abstract}
+Automatic assignment of the Diagnosis-Related Group (DRG) of a hospital discharge is a key step in hospital billing, auditing, and resource management, yet in Chile it is still performed manually by specialized coders. This work presents a supervised classifier that predicts the APR-DRG (All Patient Refined DRG) of a discharge from the ICD-10 diagnoses and ICD-9-CM procedures recorded at discharge, complemented with the patient's age and sex. Using 14,561 discharges from a Chilean public hospital, the 20 most frequent DRGs (5,861 discharges, 40.3\% of the total) were selected to define a multiclass problem. Four models were compared---logistic regression, random forest, XGBoost, and an LSTM-based network---along with a majority baseline. The LSTM obtained the best test performance with 0.944 accuracy and 0.932 macro F1 (macro AUC 0.995), outperforming XGBoost (0.942 / 0.928), logistic regression (0.928 / 0.913), and random forest (0.871 / 0.801), all far above the baseline (0.139 / 0.012). The results are comparable to, or better than, state-of-the-art DRG prediction systems and demonstrate the feasibility of an automatic DRG coder for the Chilean health system.
+\end{abstract}
+
+\begin{keywords}
+APR-DRG, automatic coding, health informatics, ICD-10, ICD-9-CM, LSTM, multiclass classification.
+\end{keywords}
+
+\titlepgskip=-21pt
+
+\maketitle
+
+\section{Introduction}
+\label{sec:introduction}
+\PARstart{T}{he} Diagnosis-Related Groups (DRGs) are a patient classification system that groups hospital stays that are clinically similar and consume comparable resources~\cite{b1}. In Chile, FONASA implemented the 3M \emph{All Patient Refined} DRG (APR-DRG) system~\cite{b2}: every hospital discharge receives a 6-digit DRG---combining the major diagnostic category, the base DRG, and severity-of-illness and risk-of-mortality subclasses, from 1 to 4---that determines the relative weight of the case and, with it, the associated payment (FONASA 2016 IR-DRG pricing table).
+
+Discharge coding is currently a manual process performed by specialized coders from the medical record. It is slow, costly, and error-prone, and it delays the closing of the hospital account and billing. A system that predicts the DRG from the diagnostic and procedure codes would allow early automation or \emph{validation} of the coding, support auditing and management control, and provide early estimates of the budget and costs of each hospitalization~\cite{b3}.
+
+A central difficulty of the problem is the \emph{high class imbalance}: the applicable APR-DRG set has hundreds of possible categories, while most hospitals concentrate their discharges in a few dozen of them. This work addresses the 20 most frequent categories, using the same input signals available to the real coder (diagnoses and procedures) plus age and sex. The repository and Overleaf sources are available at \underline{https://github.com/\ldots} and \underline{https://www.overleaf.com/\ldots}.
+
+\section{Related Work}
+\label{sec:related}
+Automatic DRG prediction is an active problem in medical informatics. Existing approaches fall into three families.
+
+\textbf{a) Classical methods.} Gartner et al.~\cite{b3} compared multinomial logistic regression, random forest, and early classification techniques on administrative discharge data (diagnoses, procedures, age, sex), finding that medical information predicts the DRG with high accuracy even before full discharge, supporting its use for resource planning.
+
+\textbf{b) Deep neural networks with clinical text.} Mullenbach et al.~\cite{b4} proposed CAML (CNN with label-wise attention) to predict ICD-9 codes from MIMIC-III clinical notes. Building on that line, Liu et al.~\cite{b5} achieved early DRG prediction (MS-DRG and APR-DRG) from clinical notes with macro AUC of 0.871 (MS-DRG) and 0.884 (APR-DRG) using a hierarchical version of CAML. More recently, DRG-LLaMA~\cite{b6} fine-tuned a LLaMA model to predict the DRG from clinical data, reaching macro F1 of 0.327, top-1 accuracy of 52.0\%, and macro AUC of 0.986, improving over ClinicalBERT and CAML by 40.3\%/35.7\%.
+
+\textbf{c) Networks with structured data.} Islam et al.~\cite{b7} developed DeepDRG, a GRU/dense model that predicts in real time one of 200 DRGs from demographics, medications, diseases, laboratory results, and procedures in a Taiwanese hospital. All these works use \emph{macro AUC} and \emph{F1} as primary metrics, given the class imbalance.
+
+This work differs from the previous ones in that it does not use clinical text but the already-structured codes (ICD-10/ICD-9-CM), which is exactly the information available in the Chilean coding workflow, and it explicitly compares classical models and a recurrent network over 6-digit APR-DRGs with complete severity (not just the base DRG).
+
+\section{Objective of the Study}
+\label{sec:objective}
+To develop and evaluate a supervised model able to \emph{predict the DRG (complete 6-digit APR-DRG code) of a hospital discharge} from the ICD-10 diagnostic and ICD-9-CM procedure codes recorded at discharge, plus the patient's age and sex. The specific objectives are:
+\begin{enumerate}
+  \item Select the most appropriate input and output feature set, justifying the decision (Section VI-A).
+  \item Train candidate models (logistic regression, random forest, XGBoost, and an LSTM network) and \emph{select the best} by comparing metrics on validation and test.
+  \item Analyze per-class performance and identify the most difficult DRGs to classify.
+  \item Compare the results with the state of the art in the literature.
+\end{enumerate}
+
+\section{Methodology}
+\label{sec:methodology}
+\subsection{Dataset Description}
+\label{sec:dataset}
+The dataset is a file of \emph{hospital discharges from a Chilean public hospital} (\texttt{dataset\_elpino.csv}) with \textbf{14,561 records and 68 columns}. Each case contains: up to 35 ICD-10 diagnoses (\texttt{DiagNN Principal/Secundario}), up to 15 ICD-9-CM procedures (\texttt{ProcedNN}), the patient's age and sex, the DRG assigned at discharge, and administrative columns. Additionally, the master tables \texttt{CIE-10.xlsx}, \texttt{CIE-9.xlsx}, \texttt{IR-GRD V3.1 CON PRECIOS FONASA 2016.xlsx}, and \texttt{Tablas maestras bases GRD.xlsx} were used to validate codes and obtain descriptions.
+
+From the 14,561 discharges, the \textbf{20 most frequent DRGs} were selected (Table~\ref{tab:grd}), concentrating \textbf{5,861 discharges (40.3\%)} of the total. The remaining classes (a long tail of hundreds of infrequent DRGs) were discarded, as they would not allow meaningful training. The problem is formulated as \textbf{multiclass classification (20 classes)}.
+
+\begin{table*}[!t]
+\caption{The 20 study DRGs, with FONASA description and discharge counts.}
+\label{tab:grd}
+\scriptsize
+\begin{tabular}{lclr}
+\hline
+\textbf{DRG} & \textbf{Description (IR-DRG FONASA)} & \textbf{Discharges} \\
+\hline
+146101 & PH CES\'AREA & 813 \\
+146121 & PH PARTO VAGINAL CON PROCED., EXCEPTO ESTERILIZACI\'ON Y/O DILATACI\'ON Y LEGRADO & 639 \\
+146131 & PH PARTO VAGINAL & 538 \\
+158171 & MH NEONATO, PESO AL NACER $>$2499 GR SIN PROCEDIMIENTO MAYOR & 389 \\
+134161 & MH TRASTORNOS DEL ANTEPARTO & 325 \\
+071141 & PH COLECISTECTOM\'IA LAPAROSC\'OPICA & 317 \\
+044153 & MH INFECCIONES E INFLAMACIONES RESPIRATORIAS W/MCC & 287 \\
+061131 & PH PROCEDIMIENTOS SOBRE AP\'ENDICE & 252 \\
+041023 & PH VENTILACI\'ON MEC\'ANICA PROLONGADA SIN TRAQUEOSTOM\'IA W/MCC & 248 \\
+146102 & PH CES\'AREA W/CC & 244 \\
+044163 & MH NEUMON\'IA SIMPLE Y TOS FERINA W/MCC & 229 \\
+131111 & PH PROCEDIMIENTOS SOBRE UTERO Y CUELLO, DILATACI\'ON Y LEGRADO & 226 \\
+131201 & PH PROCEDIMIENTOS SOBRE UTERO Y ANEXOS & 222 \\
+054123 & MH INSUFICIENCIA CARDIACA W/MCC & 204 \\
+146122 & PH PARTO VAGINAL CON PROCED., EXCEPTO ESTERILIZACI\'ON Y/O DILATACI\'ON Y LEGRADO W/CC & 187 \\
+146103 & PH CES\'AREA W/MCC & 163 \\
+061201 & PH PROCEDIMIENTOS COMPLEJOS DEL TRACTO DIGESTIVO & 154 \\
+044183 & MH BRONQUIOLITIS Y ASMA W/MCC & 145 \\
+146132 & PH PARTO VAGINAL W/CC & 140 \\
+131301 & PH HISTERECTOMIA VAGINAL Y OTROS PROCEDIMIENTOS POR VIA VAGINAL & 139 \\
+\hline
+\end{tabular}
+\vspace{2pt}
+\begin{minipage}{\linewidth}\footnotesize Example convention: \texttt{146101} = MDC 14 (pregnancy/childbirth/puerperium) + base DRG 61 (cesarean) + severity 1; W/CC = with complications or comorbidities; W/MCC = with major complications or comorbidities.\end{minipage}
+\end{table*}
+
+\subsection{Preprocessing and Feature Engineering}
+\label{sec:preprocessing}
+\begin{enumerate}
+  \item \textbf{Code standardization.} Each \texttt{DiagNN}/\texttt{ProcedNN} column is cleaned and the ICD code is extracted (e.g., \texttt{O80.0}, \texttt{75.34}), discarding the accompanying description. Codes are validated against ICD-10 and ICD-9-CM. Empty fields are interpreted as \emph{absence of code} (not missing data).
+  \item \textbf{Vocabulary.} Built from the global frequency of each code: \textbf{1,749 ICD-10 diagnostic codes} and \textbf{500 ICD-9-CM procedure codes} $\rightarrow$ \textbf{vocabulary of 2,250 tokens} (VOCAB $=$ 2,249 $+$ 1 padding).
+  \item \textbf{Input encoding.} For each discharge, the sequence of diagnoses followed by procedures (stable and clinically relevant order) is concatenated and mapped to vocabulary indices; the resulting sequence is \textbf{padded/truncated to length 65}. For the classical models, the \textbf{multi-hot} version is used (one indicator row per code $\rightarrow$ $X_{codes}$ of dimension 2,250). Additionally, \textbf{Age} (standardized) and \textbf{Sex} are used as \emph{meta} variables (2 columns).
+  \item \textbf{Target variable.} The complete 6-digit DRG is encoded with \texttt{LabelEncoder} (0--19).
+\end{enumerate}
+
+\subsection{Candidate Models and Justification}
+\label{sec:models}
+Both robust interpretable methods and deep networks should be compared, since the problem is of \emph{high dimensionality and moderate imbalance} (Table~\ref{tab:models}).
+
+\begin{table*}[!t]
+\caption{Candidate models, hyperparameters, and rationale (Python scikit-learn / XGBoost / Keras-TensorFlow).}
+\label{tab:models}
+\scriptsize
+\begin{tabular}{p{2.2cm}p{4.2cm}p{9.2cm}}
+\hline
+\textbf{Model} & \textbf{Hyperparameters} & \textbf{Rationale} \\
+\hline
+Dummy (majority) & --- (baseline) & Sets the performance floor: always predicts the most frequent class (146101). Confirms how informative the input is. \\
+Logistic regression (multinomial) & \texttt{max\_iter=1000, C=1.0, solver=liblinear} & Classical linear reference; isolates which signal is linearly separable. \\
+Random forest & \texttt{n\_estimators=400, n\_jobs=-1} & Handles nonlinear interactions without normalization, provides feature importances (interpretability), robust to sparse multi-hot input. \\
+XGBoost & \texttt{n\_estimators=400, max\_depth=6, lr=0.1, subsample=0.8, colsample=0.8} & State of the art for tabular data; better generalization than RF via regularized boosting. \\
+LSTM (emb+seq) & Embedding 64, LSTM 64, Dense meta 16, Dropout 0.3; Adam, batch 64 & Models the \textbf{order} of diagnoses/procedures (the principal diagnosis comes first) with a recurrent network, and fuses the sequential branch with age/sex. \\
+\hline
+\end{tabular}
+\vspace{2pt}
+\begin{minipage}{\linewidth}\footnotesize Note: \texttt{solver=liblinear} avoids numeric overflow warnings of \texttt{lbfgs}; the random forest is stored compressed with \texttt{joblib} ($\sim$21 MB).\end{minipage}
+\end{table*}
+
+\subsection{Model Development Process}
+\label{sec:dev}
+\begin{itemize}
+  \item \textbf{Split.} Stratified split by class: 70\% training (\textbf{4,102}), 15\% validation (\textbf{879}), and 15\% test (\textbf{880}). The test set was used \emph{only once}, at the end, to report performance; the validation set guided the selection of the best model.
+  \item \textbf{Scaling.} \texttt{StandardScaler} (fit on training) applied only to the continuous variable \texttt{Age}.
+  \item \textbf{Recurrent training.} \texttt{sparse\_categorical\_\allowbreak crossentropy}, Adam optimizer, \texttt{batch\_size=64}, up to 60 epochs with \textbf{early stopping} on \texttt{val\_loss} (patience 8, best weights restored). Random state fixed (\texttt{random\_state/SEED}) for reproducibility.
+  \item \textbf{Model selection.} Candidates were compared by \textbf{macro F1 on validation} (a metric robust to imbalance) and then on \textbf{test}.
+\end{itemize}
+
+\subsection{Evaluation Metrics}
+\label{sec:metrics}
+Because the problem has \textbf{imbalanced classes} (the most frequent class has $\sim$5.9$\times$ the examples of the least frequent), accuracy alone is misleading. All metrics below are \emph{macro} unless stated otherwise:
+\begin{itemize}
+  \item \textbf{Accuracy:} global fraction of correct predictions; intuitive, reported as reference.
+  \item \textbf{Precision, recall, and F1 (macro):} unweighted average over the 20 classes. \textbf{Macro F1} is the primary comparison metric because it penalizes majority and minority classes equally and combines both errors.
+  \item \textbf{AUC (macro):} average of the one-vs-rest AUCs per class; summarizes the threshold-independent separation ability.
+  \item \textbf{Per-class report} (precision/recall/F1 per DRG) plus the \textbf{confusion matrix}, to identify difficult classes.
+\end{itemize}
+
+\section{Data Analysis}
+\label{sec:analysis}
+\subsection{Data Quality}
+\label{sec:quality}
+\begin{itemize}
+  \item \textbf{Completeness:} no unparsable ages were detected (0 errors); empty \texttt{DiagNN}/\texttt{ProcedNN} fields correspond to absence of code and are treated as such. All retained rows have a valid DRG.
+  \item \textbf{Correctness:} codes were validated against the ICD-10/ICD-9-CM master tables; the resulting vocabulary (2,250 codes) contains only recognized codes.
+  \item \textbf{Outliers:} age ranges from 0 to 100 years; the maximum is consistent with the hospital population (the neonates of class 158171 provide the minimum). No records were removed due to outliers.
+\end{itemize}
+
+\subsection{Descriptive Statistics}
+\label{sec:descriptive}
+\begin{itemize}
+  \item \textbf{Age} (20 DRGs): mean \textbf{33.1} years, SD \textbf{20.4}, median \textbf{30}, IQR 23--40, min 0 and max 100. The skew toward low values is explained by the obstetric and neonatology classes that dominate the top-20.
+  \item \textbf{Sex:} 4,821 women (82.2\%) versus 1,040 men (17.8\%), consistent with the predominance of pregnancy/childbirth/puerperium DRGs.
+  \item \textbf{Class imbalance:} the most frequent class (146101, cesarean, 813 discharges) has \textbf{5.9$\times$} the examples of the least frequent (131301, vaginal hysterectomy, 139).
+  \item \textbf{Codes per discharge:} each discharge typically brings several diagnoses and few procedures; the sequence was limited to 65 positions (35 diagnoses $+$ 30 procedures at most).
+\end{itemize}
+
+\subsection{Visualizations}
+\label{sec:visual}
+Figure~\ref{fig:dist} confirms the imbalance and the dominance of the obstetric area. Figure~\ref{fig:age} shows how age and sex separate the DRGs (e.g., female majority and low age in deliveries/cesareans versus higher age in cholecystectomy, heart failure, and pneumonia). Figure~\ref{fig:codes} shows the top-12 ICD-10 diagnoses (dominated by postpartum/newborn follow-up Z codes: \texttt{Z39.2}, \texttt{Z39.0}, \texttt{Z38.0}, \texttt{Z37.0}) and the top-12 ICD-9-CM procedures (routine examinations and injections dominate: \texttt{90.59}, \texttt{89.7}, \texttt{99.29}).
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.9\linewidth]{figs/fig1_distribucion.png}
+\caption{Distribution of discharges among the 20 studied DRGs.}
+\label{fig:dist}
+\end{figure*}
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.9\linewidth]{figs/fig2_edad_sexo.png}
+\caption{Age (box plots) and sex composition by DRG.}
+\label{fig:age}
+\end{figure*}
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.9\linewidth]{figs/fig3_codigos.png}
+\caption{Most frequent diagnoses (ICD-10) and procedures (ICD-9-CM) codes.}
+\label{fig:codes}
+\end{figure*}
+
+\section{Experiments and Results}
+\label{sec:experiments}
+\subsection{Justification of Input and Output Feature Selection}
+\label{sec:featselection}
+\textbf{Input.} The ICD-10 diagnostic and ICD-9-CM procedure codes were chosen because they are \textbf{exactly the variables used by the human coder} to assign the APR-DRG: the APR DRG is defined from the principal diagnosis, the presence of CC/MCC, and the procedures. Including age and sex is empirically justified: in the top-20, \textbf{age} was the variable with the highest importance in the random forest (importance 0.042; see Fig.~\ref{fig:import}), and age and sex are explicit inputs of the APR-DRG methodology~\cite{b2}. Administrative columns (dates, admission numbers) were not used because they are not clinically informative nor available before closing the account.
+
+\textbf{Output.} The \textbf{complete 6-digit DRG} (MDC $+$ base $+$ severity) is used instead of only the base DRG, because severity (CC/MCC) drives the weight and the payment, and it is where the most costly coding errors are made.
+
+\subsection{Model Comparison and Selection}
+\label{sec:comparison}
+Results on \textbf{validation} are shown in Table~\ref{tab:val}; results on \textbf{test} in Table~\ref{tab:test}.
+
+\begin{table}[!t]
+\caption{Validation metrics (879 cases).}
+\label{tab:val}
+\footnotesize
+\centering
+\begin{tabular}{lrrrrr}
+\hline
+\textbf{Model} & \textbf{Acc.} & \textbf{Prec.} & \textbf{Rec.} & \textbf{F1} & \textbf{F1-w} \\
+\hline
+LSTM (emb+seq) & 0.9192 & 0.9117 & 0.8891 & \textbf{0.8982} & 0.9177 \\
+Logistic & 0.9181 & 0.9268 & 0.8824 & 0.8962 & 0.9136 \\
+XGBoost & 0.9181 & 0.9170 & 0.8799 & 0.8918 & 0.9135 \\
+Random forest & 0.8692 & 0.8634 & 0.7937 & 0.7967 & 0.8411 \\
+Dummy (majority) & 0.1388 & 0.0069 & 0.0500 & 0.0122 & 0.0338 \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{table}[!b]
+\caption{Test metrics (880 cases). The LSTM was the best model in macro F1.}
+\label{tab:test}
+\footnotesize
+\centering
+\begin{tabular}{lrrrrr}
+\hline
+\textbf{Model} & \textbf{Acc.} & \textbf{Prec.} & \textbf{Rec.} & \textbf{F1} & \textbf{F1-w} \\
+\hline
+\textbf{LSTM} & \textbf{0.9443} & 0.9320 & 0.9339 & \textbf{0.9320} & 0.9436 \\
+XGBoost & 0.9420 & 0.9344 & 0.9251 & 0.9281 & 0.9404 \\
+Logistic & 0.9284 & 0.9340 & 0.9024 & 0.9126 & 0.9241 \\
+Random forest & 0.8705 & 0.9260 & 0.8041 & 0.8008 & 0.8364 \\
+Dummy (majority) & 0.1386 & 0.0069 & 0.0500 & 0.0122 & 0.0338 \\
+\hline
+\end{tabular}
+\end{table}
+
+The \textbf{LSTM} was the best model on test (macro F1 \textbf{0.932}), closely followed by \textbf{XGBoost} (0.928). Logistic regression lags by $\sim$0.02 and random forest is clearly behind. All models are far above the baseline (0.012), confirming that the signal (codes $+$ age/sex) is highly informative and the problem is learnable. The LSTM ``gap'' over the classical models, although small, is systematic in macro recall (0.934 vs. 0.925 for XGBoost), i.e., the recurrent network recovers minority classes better.
+
+\subsection{Architecture of the Best Model and Training Process}
+\label{sec:architecture}
+The LSTM architecture (178,692 parameters) is shown in Fig.~\ref{fig:arch}: a sequential branch over the padded code sequence (an embedding of the 2,250-token vocabulary followed by a 64-unit LSTM) plus a \emph{meta} branch (age and sex through a 16-unit ReLU dense layer), both merged by concatenation (80 units), then dropout 0.3 and a softmax layer over the 20 DRG classes. The sequential branch \textbf{respects the order of the codes} (the principal diagnosis goes first), which is its main advantage over bag-of-words methods; the \textbf{embedding learns} representations of each code during training.
+
+Training: Adam, \texttt{sparse\_categorical\_\allowbreak crossentropy}, batch 64, up to 60 epochs with \emph{early stopping} on \texttt{val\_loss} (patience 8). In the main run, training stopped at \textbf{epoch 17} with \texttt{val\_loss} $=$ 0.2748.
+
+Figure~\ref{fig:train} shows the loss and accuracy curves. The figure comes from a repetition of the training with fixed seeds (\texttt{SEED=42}), since the history is not saved with the models: in that repetition early stopping stopped at \textbf{epoch 26} with \texttt{val\_loss} $=$ 0.2767 (very close to the main run, given that TensorFlow introduces small run-to-run variation). A smooth convergence without notable overfitting is observed, thanks to early stopping and dropout.
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.9\linewidth]{figs/fig4_arquitectura.png}
+\caption{Architecture of the winning LSTM model (178,692 trainable parameters).}
+\label{fig:arch}
+\end{figure*}
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.9\linewidth]{figs/fig5_entrenamiento.png}
+\caption{Training curves of the LSTM (best validation loss 0.2767 at epoch 26).}
+\label{fig:train}
+\end{figure*}
+
+\subsection{Performance Analysis}
+\label{sec:perf}
+Table~\ref{tab:class} reports the per-class test metrics of the best model (LSTM).
+
+\begin{table}[!b]
+\caption{Per-class report of the best model (LSTM) on the test set.}
+\label{tab:class}
+\footnotesize
+\centering
+\begin{tabular}{lrrrr}
+\hline
+\textbf{DRG} & \textbf{Test n} & \textbf{Prec.} & \textbf{Rec.} & \textbf{F1} \\
+\hline
+041023 & 37 & 0.97 & 0.89 & 0.93 \\
+044153 & 43 & 0.93 & 0.93 & 0.93 \\
+044163 & 35 & 0.97 & 1.00 & 0.99 \\
+044183 & 21 & 0.95 & 1.00 & 0.98 \\
+054123 & 30 & 0.90 & 0.93 & 0.92 \\
+061131 & 38 & 0.95 & 1.00 & 0.97 \\
+061201 & 23 & 0.96 & 1.00 & 0.98 \\
+071141 & 48 & 1.00 & 0.98 & 0.99 \\
+131111 & 34 & 1.00 & 0.91 & 0.95 \\
+131201 & 33 & 0.91 & 0.94 & 0.93 \\
+131301 & 21 & 0.83 & 0.90 & 0.86 \\
+134161 & 49 & 0.96 & 0.98 & 0.97 \\
+146101 & 122 & 0.94 & 0.96 & 0.95 \\
+\textbf{146102} & 37 & 0.83 & \textbf{0.68} & 0.75 \\
+146103 & 24 & 0.88 & 0.88 & 0.88 \\
+146121 & 96 & 0.97 & 0.99 & 0.98 \\
+146122 & 28 & 0.89 & 0.86 & 0.87 \\
+146131 & 81 & 0.97 & 0.96 & 0.97 \\
+146132 & 21 & 0.83 & 0.90 & 0.86 \\
+158171 & 59 & 1.00 & 0.98 & 0.99 \\
+\hline
+Macro avg & 880 & \textbf{0.93} & \textbf{0.93} & \textbf{0.93} \\
+Weighted avg & 880 & 0.94 & 0.94 & 0.94 \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=0.92\linewidth]{figs/fig6_confusion.png}
+\caption{Confusion matrix of the LSTM on the test set.}
+\label{fig:conf}
+\end{figure}
+
+Performance artifacts of the best model (LSTM) on test:
+\begin{itemize}
+  \item \textbf{Confusion matrix} (Fig.~\ref{fig:conf}): most errors concentrate between clinically close classes of the same MDC (e.g., cesarean/delivery variants).
+  \item \textbf{Macro AUC $=$ 0.995} on test; per class the lowest AUC is 0.974 for \texttt{146102} (cesarean W/CC/MCC) and the rest are $\geq$0.982 (11 classes with AUC $=$ 1.000), see Fig.~\ref{fig:auc}.
+  \item \textbf{Weak classes:} the worst case is {\bfseries \texttt{146102} (PH CES\'AREA W/CC)} with recall 0.68 and F1 0.75. It has the lowest AUC and corresponds to the finest diagnostic distinction in the set (the cesarean intermediate between the ``pure'' and the ``with MCC'').
+  \item \textbf{Feature importances (random forest):} \texttt{Age} is the most important variable (0.042), followed by the code \texttt{75.69} (cesarean) and the diagnostic \texttt{O70.0} (first-degree perineal tear, 0.031), and then \texttt{57.94}, \texttt{51.23}, \texttt{74.1}, \texttt{73.59}, \texttt{89.26}, \texttt{O80.0}\ldots---i.e., \textbf{delivery/cesarean-related procedures and diagnoses} dominate the signal (Fig.~\ref{fig:import}).
+\end{itemize}
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=0.95\linewidth]{figs/fig7_auc.png}
+\caption{One-vs-rest AUC per DRG on the test set (macro AUC 0.995).}
+\label{fig:auc}
+\end{figure}
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=0.95\linewidth]{figs/fig8_importancias.png}
+\caption{Feature importances of the top-20 features from the random forest classifier.}
+\label{fig:import}
+\end{figure}
+
+\subsection{Comparison With the Literature}
+\label{sec:literature}
+Table~\ref{tab:lit} compares this work with the systems described in Section~II.
+
+\begin{table*}[!t]
+\caption{Comparison with systems in the literature (sortable by macro AUC).}
+\label{tab:lit}
+\scriptsize
+\centering
+\begin{tabular}{p{3.4cm}p{4.2cm}p{2.4cm}rr}
+\hline
+\textbf{Work} & \textbf{Input} & \textbf{Classes} & \textbf{Macro AUC} & \textbf{F1 / top-1} \\
+\hline
+Liu et al. 2021~\cite{b5} & clinical notes (MIMIC-III) & MS-DRG / APR-DRG & 0.871 / 0.884 & F1-micro 0.270 / 0.244 \\
+Wang et al. 2024~\cite{b6} (DRG-LLaMA) & clinical data & DRG (multi-label) & 0.986 & F1 0.327 / top-1 52.0\% \\
+Islam et al. 2021~\cite{b7} (DeepDRG) & demographics+drugs+lab+procedures & 200 DRGs & --- & --- \\
+Gartner et al. 2015~\cite{b3} & administrative+clinical & DRG & --- & high early accuracy \\
+\textbf{This work (LSTM)} & \textbf{ICD-10 + ICD-9-CM + age + sex} & \textbf{20 APR-DRGs (6-digit)} & \textbf{0.995} & \textbf{F1-macro 0.932 / top-1 94.4\%} \\
+\hline
+\end{tabular}
+\end{table*}
+
+Our macro AUC (0.995) and macro F1 (0.932) are \textbf{higher} than the figures reported in the literature. This difference is explained by two reasons: (i) our problem has \textbf{20 classes} (the compared systems work with hundreds of DRGs or ICD-9 labels, much more imbalanced), and (ii) we start from \textbf{already-structured codes}---in fact, equivalent to the output of a CAML-type CNN---instead of free clinical text, which removes the entity-recognition difficulty. The comparison is therefore indicative of the relative difficulty, not a strict benchmark.
+
+\section{Conclusions}
+\label{sec:conclusions}
+\begin{itemize}
+  \item A DRG classifier (complete 6-digit APR-DRG) was built over the \textbf{20 most frequent DRGs} of a Chilean public hospital using ICD-10/ICD-9-CM diagnostic and procedure codes plus age and sex.
+  \item The \textbf{LSTM architecture} (sequential code branch + meta branch) was the best model: \textbf{accuracy 0.944, macro F1 0.932, macro AUC 0.995 on test}, largely mitigating the class imbalance.
+  \item Classical models also reach macro F1 $\geq$0.91 (XGBoost 0.928), confirming that most of the information lies in the presence of the codes; the LSTM gain ($\approx$0.004--0.02 in F1) comes from exploiting the \textbf{order} of the diagnoses and from recovering minority classes better.
+  \item The main quality limitation lies in the \textbf{intermediate severity}: the most difficult DRG is \texttt{146102} (cesarean W/CC, F1 0.75). This suggests that the CC/MCC distinction needs more clinical signal than the current codes provide.
+  \item The results support the \textbf{feasibility and convenience} of an automatic DRG coder for the Chilean system: it can reduce coding time and cost, serve as quality control over manual coding, and support auditing and financial management.
+\end{itemize}
+
+\section{Limitations and Future Work}
+\label{sec:limitations}
+\subsection{Limitations}
+\begin{enumerate}
+  \item The model only covers the \textbf{20 most frequent DRGs (40.3\% of the total)}; rare classes are excluded by design (the hospital dataset is too small for hundreds of categories).
+  \item LSTM training is \textbf{stochastic}: metrics vary slightly between runs (observed test macro F1 between $\sim$0.932 and $\sim$0.950). Seeds were fixed, but it is advisable to report intervals or use averaged repetitions.
+  \item \textbf{Single hospital}, so generalization to other institutions/payment schemes is not guaranteed (the attached IR-DRG table is FONASA 2016; weights change by year and provider).
+  \item \textbf{Free clinical text} (notes, discharge summaries) is not used; it contains severity information that the codes do not express.
+  \item The comparison with the literature is \textbf{indicative} (it differs in number of classes and input format), not a direct benchmark.
+\end{enumerate}
+\subsection{Future Work}
+\begin{enumerate}
+  \item Extend to \textbf{all classes} (or use meta-classes/long-tail handling) and validate with a second hospital or multiple sources.
+  \item Incorporate \textbf{natural clinical language} (discharge summaries, reports) with CAML-BERT-type architectures~\cite{b4,b5} or LLMs (the DRG-LLaMA line~\cite{b6}) to recover severity.
+  \item Explore \textbf{early prediction during the hospitalization} for resource management (the Gartner line~\cite{b3}).
+  \item Harden the difficult severe class (\texttt{146102}) with imbalance-sensitive losses (focal loss, class weights), calibration, and LSTM+XGBoost ensembles.
+  \item Package it as an \textbf{assisted validation service}: the model suggests a DRG to the coder, flags high-cost discrepancies, and justifies its decisions (SHAP/LIME feature importances).
+\end{enumerate}
+
+\begin{thebibliography}{00}
+
+\bibitem{b1} R. B. Fetter, Y. Shin, J. L. Freeman, R. F. Averill, and J. D. Thompson, ``Case mix definition by diagnosis-related groups,'' \emph{Medical Care}, vol. 18, no. 2 (suppl.), pp. 1--53, 1980.
+
+\bibitem{b2} R. F. Averill, N. Goldfield, J. S. Hughes \emph{et al.}, ``All Patient Refined Diagnosis Related Groups (APR-DRGs): Methodology overview,'' 3M Health Information Systems, Wallingford, CT, USA, 2003.
+
+\bibitem{b3} D. Gartner, R. Kolisch, D. B. Neill, and R. Padman, ``Machine learning approaches for early DRG classification and resource allocation,'' \emph{INFORMS Journal on Computing}, vol. 27, no. 4, pp. 718--734, 2015.
+
+\bibitem{b4} J. Mullenbach, S. Wiegreffe, J. Duke, J. Sun, and J. Eisenstein, ``Explainable prediction of medical codes from clinical text,'' in \emph{Proc. NAACL-HLT}, New Orleans, LA, USA, 2018, pp. 1101--1111.
+
+\bibitem{b5} J. Liu, D. Capurro, A. Nguyen, and K. Verspoor, ``Early prediction of diagnostic-related groups and estimation of hospital cost by processing clinical notes,'' \emph{npj Digital Medicine}, vol. 4, art. no. 103, 2021, doi: 10.1038/s41746-021-00474-9.
+
+\bibitem{b6} H. Wang, C. Gao, C. Dantona, B. Hull, and J. Sun, ``DRG-LLaMA: Tuning LLaMA model to predict diagnosis-related group for hospitalized patients,'' \emph{npj Digital Medicine}, vol. 7, art. no. 16, 2024, doi: 10.1038/s41746-023-00989-3.
+
+\bibitem{b7} M. M. Islam, G.-H. Li, T. N. Poly, and Y.-C. Li, ``DeepDRG: Performance of artificial intelligence model for real-time prediction of diagnosis-related groups,'' \emph{Healthcare}, vol. 9, art. no. 1632, 2021, doi: 10.3390/healthcare9121632.
+
+\end{thebibliography}
+
+\EOD
+
+\end{document}

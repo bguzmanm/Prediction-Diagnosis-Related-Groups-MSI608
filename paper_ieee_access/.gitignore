@@ -1,0 +1,7 @@
+*.aux
+*.log
+*.out
+*.blg
+*.bbl
+missfont.log
+mt-rerun.mk
