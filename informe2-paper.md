@@ -25,7 +25,7 @@ Los **Grupos Relacionados al Diagnóstico (GRD/DRG)** son un sistema de clasific
 
 La **codificación de las altas** es hoy un proceso manual, realizado por personal especializado (codificadores) a partir de la ficha clínica. Este proceso es lento, costoso y propenso a error, y retrasa el cierre de la cuenta hospitalaria y la facturación. Un sistema que prediga el GRD a partir de los códigos de diagnóstico y procedimientos permitiría automatizar o **validar la codificación** de manera temprana, apoyar la auditoría y el control de gestión, y estimar anticipadamente el presupuesto y los costos asociados a cada hospitalización [Gartner 2015].
 
-Dentro de la dificultad del problema está la **alta desproporción de clases**: el conjunto de APR-DRG aplicable cuenta con cientos de categorías posibles, mientras que la mayoría de los hospitales concentra sus egresos en unas pocas docenas de ellas. Un estudio exploratorio previo de este mismo dataset (notebook base, clasificación binaria/multiclase de solo 3 variantes de cesárea, GRD `146101/146102/146103`) produjo modelos con exactitud ≈ 0.86 en validación pero **recall ≈ 0.1** para la severidad intermedia (`146102`), lo que evidencia que agrupar clases extremadamente desbalanceadas distorsiona el aprendizaje. El presente trabajo amplía el problema a **los 20 GRD más frecuentes**, usando las mismas señales de entrada del codificador real (diagnósticos y procedimientos) más edad y sexo.
+Dentro de la dificultad del problema está la **alta desproporción de clases**: el conjunto de APR-DRG aplicable cuenta con cientos de categorías posibles, mientras que la mayoría de los hospitales concentra sus egresos en unas pocas docenas de ellas. El presente trabajo aborda las **20 categorías más frecuentes**, usando las mismas señales de entrada del codificador real (diagnósticos y procedimientos) más edad y sexo.
 
 ## 2. Revisión de la literatura (punto 1)
 
@@ -161,7 +161,7 @@ Las figuras se generan con `dataset/generar_figuras.py` (PNG en `dataset/figs/`)
 
 **Entrada.** Se eligieron los códigos CIE-10 de diagnóstico y CIE-9-CM de procedimiento porque son **exactamente las variables que usa el codificador humano** para asignar el APR-DRG: el GRD APR se define a partir del diagnóstico principal, la presencia de CC/MCC y los procedimientos. Incluir edad y sexo está justificado empíricamente: en el top-20, **edad** resultó la variable con mayor importancia en random forest (importancia 0.042, ver Fig. 8) y edad y sexo son insumos explícitos de la metodología APR-DRG [Averill 2003]. No se usaron columnas administrativas (fechas, números de ingreso) por no ser clínicamente informativas ni disponibles antes del cierre de la cuenta.
 
-**Salida.** Se usa el **GRD completo de 6 dígitos** (CDM + base + severidad) y no solo la base del GRD, porque la severidad (CC/MCC) es determinante del peso y del pago y es donde se cometen los errores de codificación más costosos (el experimento base de 3 clases de cesárea tuvo recall de 0.1 precisamente en la severidad intermedia).
+**Salida.** Se usa el **GRD completo de 6 dígitos** (CDM + base + severidad) y no solo la base del GRD, porque la severidad (CC/MCC) es determinante del peso y del pago y es donde se cometen los errores de codificación más costosos.
 
 ### 6.2 Comparación de modelos y elección del mejor (4.b)
 
@@ -256,7 +256,7 @@ Los artefactos de desempeño del mejor modelo (LSTM) en test:
 
 ![Figura 7 — AUC por GRD en test (LSTM)](dataset/figs/fig7_auc.png)
 
-- **Clases débiles:** el peor caso es **`146102` (PH CESÁREA W/CC)** con recall 0.68 y F1 0.75. Es la clase con menor AUC y corresponde al diagnóstico diferencial más fino del conjunto (la cesárea intermedia entre la "pura" y la "con MCC"), lo que coincide con el hallazgo del experimento base de 3 clases.
+- **Clases débiles:** el peor caso es **`146102` (PH CESÁREA W/CC)** con recall 0.68 y F1 0.75. Es la clase con menor AUC y corresponde al diagnóstico diferencial más fino del conjunto (la cesárea intermedia entre la "pura" y la "con MCC").
 - **Importancia de características (random forest):** `Edad` es la variable más importante (0.042), seguida del código `75.69` (cesárea) y del diagnóstico `O70.0` (desgarro perineal de primer grado, 0.031), y luego sucesivamente `57.94`, `51.23`, `74.1`, `73.59`, `89.26`, `O80.0`… es decir, **procedimientos y diagnósticos propios del parto/cesárea** dominan la señal (Figura 8).
 
 ![Figura 8 — Importancia de las 20 características principales (Random Forest)](dataset/figs/fig8_importancias.png)
@@ -280,7 +280,7 @@ Nuestro AUC macro (0.995) y F1 macro (0.932) son **superiores** a los reportados
 - Se construyó un clasificador de GRD (APR-DRG completo de 6 dígitos) sobre los **20 GRD más frecuentes** de un hospital público chileno usando los códigos CIE-10/CIE-9-CM de diagnóstico y procedimiento, más edad y sexo.
 - La **arquitectura LSTM** (rama secuencial de códigos + rama meta) fue el mejor modelo: **accuracy 0.944, F1 macro 0.932, AUC macro 0.995 en test**, mitigando en gran medida el desbalance de clases.
 - Los modelos clásicos también alcanzan F1 macro ≥ 0.91 (XGBoost 0.928), lo que confirma que el grueso de la información está en la presencia de los códigos; la ganancia de la LSTM (≈0.004–0.02 en F1) proviene de explotar el **orden** de los diagnósticos y de recuperar mejor las clases minoritarias.
-- La principal limitación de calidad está en la **severidad intermedia**: el GRD más difícil es `146102` (cesárea con CC, F1 0.75), coincidiendo con el resultado del estudio exploratorio previo. Esto sugiere que la diferenciación CC/MCC necesita más señal clínica que los códigos actuales.
+- La principal limitación de calidad está en la **severidad intermedia**: el GRD más difícil es `146102` (cesárea con CC, F1 0.75). Esto sugiere que la diferenciación CC/MCC necesita más señal clínica que los códigos actuales.
 - Los resultados avalan la **viabilidad y conveniencia** de un codificador automático de GRD para el sistema chileno: puede reducir tiempos y costos de codificación, servir de control de calidad sobre la codificación manual, y apoyar la auditoría y la gestión financiera.
 
 ## 8. Limitaciones y trabajo futuro (punto 6)
