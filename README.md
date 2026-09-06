@@ -4,7 +4,7 @@ Este repositorio pretende servir como repo central para el trabajo en equipo que
 
 1. [Descripción del Informe 2](Proyecto2-Predicción-del-GRD.md)
 2. [Formato de Presentación](MSI608-Presentacion.pptx)
-3. [Informe en Markdown](informe2-paper)
+3. [Informe en Markdown](informe2-paper.md)
 4. [Proyecto en Python](dataset/analisis_multiclase.ipynb)
 
 ## Explicación de Contenido
